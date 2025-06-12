@@ -1,0 +1,42 @@
+d:/projects/Tiffin CRM/tiffin-crm/
+├── .gitignore
+├─] node_modules/ (ignored)
+├── package-lock.json
+├── package.json
+├── postcss.config.js
+├── public/
+│   ├── favicon.ico
+│   ├── index.html
+│   ├── logo192.png
+│   ├── logo512.png
+│   ├── manifest.json
+│   └── robots.txt
+├── README.md
+├── server/
+│   ├── config/
+│   │   └── database.js
+│   ├── routes/
+│   │   ├── customers.js
+│   │   ├── menu.js
+│   │   └── orders.js
+│   └── server.js
+├── src/
+│   ├── App.css
+│   ├── App.js
+│   ├── App.test.js
+│   ├── components/
+│   │   ├── AddCustomer.js
+│   │   ├── CustomerList.js
+│   │   ├── Dashboard.js
+│   │   ├── Header.js
+│   │   ├── MenuManagement.js
+│   │   ├── OrderList.js
+│   │   └── Sidebar.js
+│   ├── index.css
+│   ├── index.js
+│   ├── logo.svg
+│   ├── reportWebVitals.js
+│   ├── services/
+│   │   └── api.js
+│   └── setupTests.js
+└── tailwind.config.js
