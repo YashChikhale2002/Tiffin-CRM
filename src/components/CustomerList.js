@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { customerAPI } from '../services/api';
 
-const CustomerList = ({ customers, onRefresh }) => {
+const CustomerList = ({ customers, onRefresh, showSuccess, showError }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null);
@@ -35,8 +35,9 @@ const CustomerList = ({ customers, onRefresh }) => {
       setEditingCustomer(null);
       setEditForm({});
       onRefresh();
+      showSuccess(`Customer "${editForm.name}" updated successfully! ✨`);
     } catch (error) {
-      alert('Error updating customer: ' + error.message);
+      showError('Failed to update customer: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -52,10 +53,11 @@ const CustomerList = ({ customers, onRefresh }) => {
       setLoading(true);
       await customerAPI.delete(customerToDelete.id);
       setShowDeleteModal(false);
+      showSuccess(`Customer "${customerToDelete.name}" deleted successfully! 🗑️`);
       setCustomerToDelete(null);
       onRefresh();
     } catch (error) {
-      alert('Error deleting customer: ' + error.message);
+      showError('Failed to delete customer: ' + error.message);
     } finally {
       setLoading(false);
     }

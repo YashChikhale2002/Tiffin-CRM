@@ -7,6 +7,8 @@ import CustomerList from './components/CustomerList';
 import OrderList from './components/OrderList';
 import MenuManagement from './components/MenuManagement';
 import AddCustomer from './components/AddCustomer';
+import { ToastContainer } from './components/Toast';
+import { useToast } from './hooks/useToast';
 import { customerAPI, menuAPI, orderAPI } from './services/api';
 
 function App() {
@@ -16,6 +18,9 @@ function App() {
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  
+  // Toast system
+  const { toasts, removeToast, showSuccess, showError, showInfo } = useToast();
 
   // Load data on component mount
   useEffect(() => {
@@ -36,8 +41,13 @@ function App() {
       setCustomers(customersRes.data || []);
       setOrders(ordersRes.data || []);
       setMenuItems(menuRes.data || []);
+      
+      if (activeTab === 'dashboard') {
+        showInfo('Dashboard data loaded successfully!');
+      }
     } catch (err) {
       setError('Failed to load data. Please make sure the server is running.');
+      showError('Failed to load data. Please check your connection.');
       console.error('Error loading data:', err);
     } finally {
       setLoading(false);
@@ -48,7 +58,9 @@ function App() {
     try {
       const response = await customerAPI.getAll();
       setCustomers(response.data || []);
+      showSuccess('Customer list refreshed!');
     } catch (err) {
+      showError('Failed to refresh customers');
       console.error('Error refreshing customers:', err);
     }
   };
@@ -57,7 +69,9 @@ function App() {
     try {
       const response = await orderAPI.getAll();
       setOrders(response.data || []);
+      showSuccess('Orders refreshed!');
     } catch (err) {
+      showError('Failed to refresh orders');
       console.error('Error refreshing orders:', err);
     }
   };
@@ -66,7 +80,9 @@ function App() {
     try {
       const response = await menuAPI.getAll();
       setMenuItems(response.data || []);
+      showSuccess('Menu refreshed!');
     } catch (err) {
+      showError('Failed to refresh menu');
       console.error('Error refreshing menu:', err);
     }
   };
@@ -75,8 +91,10 @@ function App() {
     try {
       await customerAPI.create(customerData);
       await refreshCustomers();
+      showSuccess(`Customer "${customerData.name}" added successfully! 🎉`);
       return true;
     } catch (err) {
+      showError('Failed to add customer: ' + err.message);
       console.error('Error adding customer:', err);
       throw err;
     }
@@ -115,13 +133,41 @@ function App() {
       case 'dashboard':
         return <Dashboard customers={customers} orders={orders} menuItems={menuItems} />;
       case 'customers':
-        return <CustomerList customers={customers} onRefresh={refreshCustomers} />;
+        return (
+          <CustomerList 
+            customers={customers} 
+            onRefresh={refreshCustomers}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        );
       case 'orders':
-        return <OrderList orders={orders} onRefresh={refreshOrders} />;
+        return (
+          <OrderList 
+            orders={orders} 
+            onRefresh={refreshOrders}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        );
       case 'menu':
-        return <MenuManagement menuItems={menuItems} onRefresh={refreshMenu} />;
+        return (
+          <MenuManagement 
+            menuItems={menuItems} 
+            onRefresh={refreshMenu}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        );
       case 'add-customer':
-        return <AddCustomer onAddCustomer={addCustomer} setActiveTab={setActiveTab} />;
+        return (
+          <AddCustomer 
+            onAddCustomer={addCustomer} 
+            setActiveTab={setActiveTab}
+            showSuccess={showSuccess}
+            showError={showError}
+          />
+        );
       default:
         return <Dashboard customers={customers} orders={orders} menuItems={menuItems} />;
     }
@@ -136,6 +182,9 @@ function App() {
           {renderContent()}
         </main>
       </div>
+      
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} removeToast={removeToast} />
     </div>
   );
 }

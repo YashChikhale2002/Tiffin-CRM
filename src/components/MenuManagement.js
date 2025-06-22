@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { menuAPI } from '../services/api';
 
-const MenuManagement = ({ menuItems, onRefresh }) => {
+const MenuManagement = ({ menuItems, onRefresh, showSuccess, showError }) => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,18 +21,20 @@ const MenuManagement = ({ menuItems, onRefresh }) => {
           ...formData,
           price: parseFloat(formData.price)
         });
+        showSuccess(`Menu item "${formData.name}" updated successfully! ✨`);
       } else {
         await menuAPI.create({
           ...formData,
           price: parseFloat(formData.price)
         });
+        showSuccess(`Menu item "${formData.name}" added successfully! 🍽️`);
       }
       setFormData({ name: '', price: '', category: 'Vegetarian', available: true });
       setShowAddForm(false);
       setEditingItem(null);
       onRefresh();
     } catch (error) {
-      alert('Error saving menu item: ' + error.message);
+      showError('Failed to save menu item: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -49,27 +51,31 @@ const MenuManagement = ({ menuItems, onRefresh }) => {
     setShowAddForm(true);
   };
 
-  const handleDelete = async (itemId) => {
-    if (window.confirm('Are you sure you want to delete this menu item?')) {
+  const handleDelete = async (itemId, itemName) => {
+    // Custom confirmation modal for better UX
+    if (window.confirm(`Are you sure you want to delete "${itemName}"?`)) {
       try {
         setLoading(true);
         await menuAPI.delete(itemId);
         onRefresh();
+        showSuccess(`Menu item "${itemName}" deleted successfully! 🗑️`);
       } catch (error) {
-        alert('Error deleting menu item: ' + error.message);
+        showError('Failed to delete menu item: ' + error.message);
       } finally {
         setLoading(false);
       }
     }
   };
 
-  const handleToggleAvailability = async (itemId) => {
+  const handleToggleAvailability = async (itemId, itemName, currentStatus) => {
     try {
       setLoading(true);
       await menuAPI.toggleAvailability(itemId);
       onRefresh();
+      const newStatus = currentStatus ? 'disabled' : 'enabled';
+      showSuccess(`Menu item "${itemName}" ${newStatus} successfully! ${currentStatus ? '❌' : '✅'}`);
     } catch (error) {
-      alert('Error updating availability: ' + error.message);
+      showError('Failed to update availability: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -114,7 +120,7 @@ const MenuManagement = ({ menuItems, onRefresh }) => {
 
       {/* Add/Edit Form */}
       {showAddForm && (
-        <div className="bg-white rounded-lg shadow-md p-6 mb-6">
+        <div className="bg-white rounded-lg shadow-md p-6 mb-6 animate-modal-fade-in">
           <h3 className="text-xl font-semibold mb-4">
             {editingItem ? 'Edit Menu Item' : 'Add New Menu Item'}
           </h3>
@@ -163,6 +169,8 @@ const MenuManagement = ({ menuItems, onRefresh }) => {
                 <option value="Non-Vegetarian">Non-Vegetarian</option>
                 <option value="Beverage">Beverage</option>
                 <option value="Dessert">Dessert</option>
+                <option value="Snacks">Snacks</option>
+                <option value="Special">Special</option>
               </select>
             </div>
             <div>
@@ -183,9 +191,19 @@ const MenuManagement = ({ menuItems, onRefresh }) => {
               <button
                 type="submit"
                 disabled={loading}
-                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+                className="bg-primary-600 text-white px-6 py-2 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center"
               >
-                {loading ? 'Saving...' : (editingItem ? 'Update Item' : 'Add Item')}
+                {loading ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Saving...
+                  </>
+                ) : (
+                  editingItem ? 'Update Item' : 'Add Item'
+                )}
               </button>
               <button
                 type="button"
@@ -203,61 +221,135 @@ const MenuManagement = ({ menuItems, onRefresh }) => {
       {/* Menu Items by Category */}
       {Object.keys(groupedItems).length === 0 ? (
         <div className="bg-white rounded-lg shadow-md p-8 text-center">
-          <p className="text-gray-500">No menu items found. Add your first item to get started!</p>
+          <div className="text-gray-400 text-6xl mb-4">🍽️</div>
+          <p className="text-gray-500 text-lg mb-2">No menu items found</p>
+          <p className="text-gray-400 mb-4">Add your first item to get started!</p>
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            Add First Item
+          </button>
         </div>
       ) : (
         Object.entries(groupedItems).map(([category, items]) => (
           <div key={category} className="mb-8">
-            <h3 className="text-xl font-semibold text-gray-800 mb-4">{category}</h3>
+            <div className="flex items-center mb-4">
+              <h3 className="text-xl font-semibold text-gray-800">{category}</h3>
+              <span className="ml-3 bg-gray-200 text-gray-600 px-2 py-1 rounded-full text-sm">
+                {items.length} item{items.length !== 1 ? 's' : ''}
+              </span>
+            </div>
             <div className="bg-white rounded-lg shadow-md overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Item</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Item
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Price
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                      </th>
+                      <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Actions
+                      </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
                     {items.map((item) => (
-                      <tr key={item.id} className="hover:bg-gray-50">
+                      <tr key={item.id} className="hover:bg-gray-50 transition-colors">
                         <td className="px-6 py-4">
-                          <div className="font-medium text-gray-900">{item.name}</div>
+                          <div className="flex items-center">
+                            <div className="flex-shrink-0 h-10 w-10">
+                              <div className={`h-10 w-10 rounded-full flex items-center justify-center ${
+                                item.category === 'Vegetarian' ? 'bg-green-100' :
+                                item.category === 'Non-Vegetarian' ? 'bg-red-100' :
+                                item.category === 'Beverage' ? 'bg-blue-100' :
+                                item.category === 'Dessert' ? 'bg-pink-100' :
+                                item.category === 'Snacks' ? 'bg-yellow-100' :
+                                'bg-purple-100'
+                              }`}>
+                                <span className="text-lg">
+                                  {item.category === 'Vegetarian' ? '🥗' :
+                                   item.category === 'Non-Vegetarian' ? '🍖' :
+                                   item.category === 'Beverage' ? '🥤' :
+                                   item.category === 'Dessert' ? '🍰' :
+                                   item.category === 'Snacks' ? '🍿' :
+                                   '✨'}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="ml-4">
+                              <div className="text-sm font-medium text-gray-900">{item.name}</div>
+                              <div className="text-sm text-gray-500">{item.category}</div>
+                            </div>
+                          </div>
                         </td>
                         <td className="px-6 py-4">
-                          <div className="text-gray-900">₹{item.price}</div>
+                          <div className="text-lg font-semibold text-gray-900">₹{item.price}</div>
                         </td>
                         <td className="px-6 py-4">
-                          <span className={`px-2 py-1 rounded-full text-xs ${
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             item.available !== 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
                           }`}>
+                            <span className={`w-1.5 h-1.5 mr-1.5 rounded-full ${
+                              item.available !== 0 ? 'bg-green-400' : 'bg-red-400'
+                            }`}></span>
                             {item.available !== 0 ? 'Available' : 'Unavailable'}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-sm font-medium space-x-2">
-                          <button
-                            onClick={() => handleEdit(item)}
-                            disabled={loading}
-                            className="text-primary-600 hover:text-primary-900 disabled:opacity-50"
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => handleToggleAvailability(item.id)}
-                            disabled={loading}
-                            className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
-                          >
-                            {item.available !== 0 ? 'Disable' : 'Enable'}
-                          </button>
-                          <button
-                            onClick={() => handleDelete(item.id)}
-                            disabled={loading}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          >
-                            Delete
-                          </button>
+                        <td className="px-6 py-4 text-sm font-medium">
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleEdit(item)}
+                              disabled={loading}
+                              className="inline-flex items-center px-3 py-1 rounded-md text-sm bg-blue-100 text-blue-700 hover:bg-blue-200 disabled:opacity-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => handleToggleAvailability(item.id, item.name, item.available !== 0)}
+                              disabled={loading}
+                              className={`inline-flex items-center px-3 py-1 rounded-md text-sm transition-colors disabled:opacity-50 ${
+                                item.available !== 0 
+                                  ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200' 
+                                  : 'bg-green-100 text-green-700 hover:bg-green-200'
+                              }`}
+                            >
+                              {item.available !== 0 ? (
+                                <>
+                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728L5.636 5.636m12.728 12.728L18 18M5.636 5.636L6 6" />
+                                  </svg>
+                                  Disable
+                                </>
+                              ) : (
+                                <>
+                                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  Enable
+                                </>
+                              )}
+                            </button>
+                            <button
+                              onClick={() => handleDelete(item.id, item.name)}
+                              disabled={loading}
+                              className="inline-flex items-center px-3 py-1 rounded-md text-sm bg-red-100 text-red-700 hover:bg-red-200 disabled:opacity-50 transition-colors"
+                            >
+                              <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Delete
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

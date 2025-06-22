@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { orderAPI } from '../services/api';
 
-const OrderList = ({ orders, onRefresh }) => {
+const OrderList = ({ orders, onRefresh, showSuccess, showError }) => {
   const [statusFilter, setStatusFilter] = useState('All');
   const [loading, setLoading] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
@@ -16,26 +16,28 @@ const OrderList = ({ orders, onRefresh }) => {
     return order.status === statusFilter;
   });
 
-  const handleStatusUpdate = async (orderId, newStatus) => {
+  const handleStatusUpdate = async (orderId, newStatus, customerName) => {
     try {
       setLoading(true);
       await orderAPI.updateStatus(orderId, newStatus);
       onRefresh();
+      showSuccess(`Order #${orderId} status updated to "${newStatus}" for ${customerName}! 📦`);
     } catch (error) {
-      alert('Error updating order status: ' + error.message);
+      showError('Failed to update order status: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDeleteOrder = async (orderId) => {
-    if (window.confirm('Are you sure you want to delete this order?')) {
+  const handleDeleteOrder = async (orderId, customerName) => {
+    if (window.confirm(`Are you sure you want to delete order #${orderId} for ${customerName}?`)) {
       try {
         setLoading(true);
         await orderAPI.delete(orderId);
         onRefresh();
+        showSuccess(`Order #${orderId} deleted successfully! 🗑️`);
       } catch (error) {
-        alert('Error deleting order: ' + error.message);
+        showError('Failed to delete order: ' + error.message);
       } finally {
         setLoading(false);
       }
@@ -48,8 +50,9 @@ const OrderList = ({ orders, onRefresh }) => {
       const response = await orderAPI.getById(orderId);
       setSelectedOrder(response.data);
       setShowOrderDetails(true);
+      showSuccess('Order details loaded! 📋');
     } catch (error) {
-      alert('Error fetching order details: ' + error.message);
+      showError('Failed to fetch order details: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -160,7 +163,7 @@ const OrderList = ({ orders, onRefresh }) => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <select
                         value={order.status || 'Pending'}
-                        onChange={(e) => handleStatusUpdate(order.id, e.target.value)}
+                        onChange={(e) => handleStatusUpdate(order.id, e.target.value, order.customer_name || order.customer)}
                         disabled={loading}
                         className={`px-2 py-1 rounded-full text-xs font-medium border-0 ${getStatusColor(order.status)} disabled:opacity-50`}
                       >
@@ -180,7 +183,7 @@ const OrderList = ({ orders, onRefresh }) => {
                         View
                       </button>
                       <button
-                        onClick={() => handleDeleteOrder(order.id)}
+                        onClick={() => handleDeleteOrder(order.id, order.customer_name || order.customer)}
                         disabled={loading}
                         className="text-red-600 hover:text-red-900 disabled:opacity-50"
                       >
