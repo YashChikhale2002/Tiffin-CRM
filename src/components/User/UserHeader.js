@@ -1,11 +1,26 @@
 import React, { useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 
-const UserHeader = ({ cart = [] }) => {
+const UserHeader = ({ cart = [], activeTab, setActiveTab }) => {
   const { user, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
+
+  const handleProfileClick = () => {
+    setActiveTab('profile');
+    setShowDropdown(false);
+  };
+
+  const handleOrdersClick = () => {
+    setActiveTab('orders');
+    setShowDropdown(false);
+  };
+
+  const handleSupportClick = () => {
+    setActiveTab('support');
+    setShowDropdown(false);
+  };
 
   return (
     <header className="bg-white shadow-md border-b border-gray-200">
@@ -13,7 +28,7 @@ const UserHeader = ({ cart = [] }) => {
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
-            <div className="flex-shrink-0 flex items-center">
+            <div className="flex-shrink-0 flex items-center cursor-pointer" onClick={() => setActiveTab('dashboard')}>
               <div className="bg-gradient-to-r from-orange-500 to-red-500 rounded-lg p-2 mr-3">
                 <span className="text-white text-xl font-bold">🍱</span>
               </div>
@@ -28,13 +43,17 @@ const UserHeader = ({ cart = [] }) => {
           <div className="flex items-center space-x-4">
             {/* Cart Icon */}
             <div className="relative">
-              <button className="bg-orange-100 p-2 rounded-full hover:bg-orange-200 transition-colors">
+              <button 
+                onClick={() => setActiveTab('menu')}
+                className="bg-orange-100 p-2 rounded-full hover:bg-orange-200 transition-colors"
+                title="View Cart"
+              >
                 <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6M7 13l-1.5 6m9.5-6v6a2 2 0 01-2 2H9a2 2 0 01-2-2v-6m8 0V9a2 2 0 00-2-2H9a2 2 0 00-2 2v4.01" />
                 </svg>
               </button>
               {cartItemCount > 0 && (
-                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center font-semibold">
                   {cartItemCount}
                 </span>
               )}
@@ -74,21 +93,30 @@ const UserHeader = ({ cart = [] }) => {
                       <p className="text-xs text-gray-500">{user.email}</p>
                     </div>
                     
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                    <button 
+                      onClick={handleProfileClick}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
                       <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                       </svg>
                       Profile Settings
                     </button>
                     
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                    <button 
+                      onClick={handleOrdersClick}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
                       <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                       </svg>
                       Order History
                     </button>
                     
-                    <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center">
+                    <button 
+                      onClick={handleSupportClick}
+                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center"
+                    >
                       <svg className="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>

@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { menuAPI, orderAPI } from '../../services/api';
 
-const UserDashboard = ({ showSuccess, showError, cart, setCart }) => {
+const UserDashboard = ({ showSuccess, showError, cart, setCart, setActiveTab }) => {
   const { user } = useAuth();
   const [menuItems, setMenuItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState('All');
   const [showCart, setShowCart] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [showOrderModal, setShowOrderModal] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -109,12 +111,20 @@ const UserDashboard = ({ showSuccess, showError, cart, setCart }) => {
       setShowCart(false);
       loadData();
       showSuccess('Order placed successfully! 🎉 We\'ll prepare your delicious meal soon!');
+      if (setActiveTab) {
+        setActiveTab('orders');
+      }
     } catch (error) {
       showError('Failed to place order. Please try again.');
       console.error('Error placing order:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const viewOrderDetails = (order) => {
+    setSelectedOrder(order);
+    setShowOrderModal(true);
   };
 
   const getStatusColor = (status) => {
@@ -438,7 +448,10 @@ const UserDashboard = ({ showSuccess, showError, cart, setCart }) => {
                     <div className="text-sm text-gray-600 mb-4">Order details not available</div>
                   )}
 
-                  <button className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium">
+                  <button 
+                    onClick={() => viewOrderDetails(order)}
+                    className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition-colors text-sm font-medium"
+                  >
                     View Details
                   </button>
                 </div>
@@ -446,6 +459,113 @@ const UserDashboard = ({ showSuccess, showError, cart, setCart }) => {
             </div>
           )}
         </div>
+
+        {/* Order Details Modal */}
+        {showOrderModal && selectedOrder && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden">
+              {/* Modal Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 text-white p-6">
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-2xl font-bold">Order Details</h2>
+                    <p className="text-blue-100">Order #{selectedOrder.id}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowOrderModal(false)}
+                    className="text-white hover:text-gray-200 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal Body */}
+              <div className="p-6 max-h-96 overflow-y-auto">
+                {/* Order Info */}
+                <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h4 className="font-semibold text-gray-800 mb-2">Order Information</h4>
+                      <p className="text-sm text-gray-600">Date: {selectedOrder.order_date || 'Not available'}</p>
+                      <p className="text-sm text-gray-600">Status: 
+                        <span className={`ml-2 inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(selectedOrder.status)}`}>
+                          <span className="mr-1">{getStatusIcon(selectedOrder.status)}</span>
+                          {selectedOrder.status}
+                        </span>
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-800 mb-2">Customer Information</h4>
+                      <p className="text-sm text-gray-600">Name: {selectedOrder.customer_name || user.name}</p>
+                      <p className="text-sm text-gray-600">Phone: {selectedOrder.customer_phone || user.phone || 'Not provided'}</p>
+                    </div>
+                  </div>
+                  {selectedOrder.delivery_address && (
+                    <div className="mt-4">
+                      <h4 className="font-semibold text-gray-800 mb-2">Delivery Address</h4>
+                      <p className="text-sm text-gray-600">{selectedOrder.delivery_address}</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Order Items */}
+                <div>
+                  <h4 className="font-semibold text-gray-800 mb-4">Order Items</h4>
+                  {selectedOrder.items && selectedOrder.items.length > 0 ? (
+                    <div className="space-y-3">
+                      {selectedOrder.items.map((item, index) => (
+                        <div key={index} className="bg-gray-50 rounded-lg p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <h5 className="font-medium text-gray-800">{item.menu_item_name}</h5>
+                              <p className="text-sm text-gray-600">₹{item.price} each</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium text-gray-800">Qty: {item.quantity}</p>
+                              <p className="text-sm font-semibold text-orange-600">₹{item.total_price}</p>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500 text-center py-4">No item details available</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="border-t p-6">
+                <div className="flex justify-between items-center mb-4">
+                  <span className="text-xl font-bold text-gray-800">Total Amount:</span>
+                  <span className="text-2xl font-bold text-orange-600">₹{selectedOrder.total_amount}</span>
+                </div>
+                <div className="flex space-x-3">
+                  <button
+                    onClick={() => setShowOrderModal(false)}
+                    className="flex-1 bg-gray-300 text-gray-700 py-3 rounded-lg hover:bg-gray-400 transition-colors font-medium"
+                  >
+                    Close
+                  </button>
+                  {selectedOrder.status === 'Pending' && (
+                    <button
+                      onClick={() => {
+                        // You can add order cancellation logic here
+                        showError('Order cancellation feature coming soon!');
+                      }}
+                      className="flex-1 bg-red-500 text-white py-3 rounded-lg hover:bg-red-600 transition-colors font-medium"
+                    >
+                      Cancel Order
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
